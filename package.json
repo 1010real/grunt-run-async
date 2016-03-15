@@ -1,0 +1,39 @@
+{
+  "name": "grunt-run-async",
+  "description": "Run command async.",
+  "version": "0.1.0",
+  "homepage": "https://github.com/1010real/grunt-run-async",
+  "author": {
+    "name": "1010real",
+    "email": "moka0329@gmail.com",
+    "url": "http://1010real.hateblo.jp/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/1010real/grunt-run-async.git"
+  },
+  "bugs": {
+    "url": "https://github.com/1010real/grunt-run-async/issues"
+  },
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "https://github.com/1010real/grunt-run-async/blob/master/LICENSE-MIT"
+    }
+  ],
+  "engines": {
+    "node": ">= 5.6.0"
+  },
+  "scripts": {
+    "test": "grunt test"
+  },
+  "devDependencies": {
+    "grunt-contrib-jshint": "^0.9.2",
+    "grunt-contrib-clean": "^0.5.0",
+    "grunt-contrib-nodeunit": "^0.3.3",
+    "grunt": "~0.4.5"
+  },
+  "keywords": [
+    "gruntplugin"
+  ]
+}
