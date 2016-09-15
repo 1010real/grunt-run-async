@@ -32,59 +32,80 @@ module.exports = function(grunt) {
 
     var done = this.async();
     var fileCount = this.files.length;
-    var doneCount = 0;
 
-    // Iterate over all specified file groups.
-    this.files.forEach(function(f) {
-      // Concat specified files.
-      var src = f.src.filter(function(filepath) {
+    // run Command async
+    function runCommand(f) {
+      return new Promise(function(resolve, reject) {
 
-        // Warn on and remove invalid source files (if nonull was set).
-        if (!grunt.file.exists(filepath)) {
-          grunt.log.warn('Source file "' + filepath + '" not found.');
-          return false;
-        } else {
-          return true;
-        }
-      }).map(function(filepath) {
-        var spawn = require('child_process').spawn;
-        var cmd = spawn(options.cmd, options.args.concat([filepath]), { cwd:'.' });
-        var buff = "";
+        // Concat specified files.
+        var src = f.src.filter(function(filepath) {
 
-        cmd.stdout.on('data', function(data) {
-          // grunt.log.writeln('stdout:' + data);
-          buff += String(data);
-        });
-
-        cmd.stderr.on('data', function(data) {
-          grunt.log.writeln('stderr: ' + data);
-          done(false);
-        });
-
-        cmd.on('close', function(code) {
-          if (code !== 0) {
-            grunt.log.writeln('child process exited with code : ' + code);
-            done(false);
+          // Warn on and remove invalid source files (if nonull was set).
+          if (!grunt.file.exists(filepath)) {
+            resolve({ message: 'Source file "' + filepath + '" not found.', logType:'warn', data: filepath });
+            return false;
+          } else {
+            return true;
           }
+        }).map(function(filepath) {
+          var spawn = require('child_process').spawn;
+          var cmd = spawn(options.cmd, options.args.concat([filepath]), { cwd:'.' });
+          var buff = Buffer.from('');
 
-          // Print a success message.
-          grunt.log.writeln('File "' + f.dest + '" created.');
+          cmd.stdout.on('data', function(data) {
+            // grunt.log.writeln('stdout:' + data);
+            var totalLength = buff.length + data.length;
+            buff = Buffer.concat([buff, data], totalLength);
+          });
 
-          // Write the destination file.
-          grunt.file.write(f.dest, buff);
+          cmd.stderr.on('data', function(data) {
+            reject({ message: 'stderr: ' + data, err: data });
+          });
 
-          // Count done processes and check end of all.
-          doneCount++;
-          if (doneCount >= fileCount) {
-            done();
-          }
+          cmd.on('close', function(code) {
+            if (code !== 0) {
+              reject({ message: 'child process exited with code : ' + code, err: code });
+            }
+
+            // Write the destination file.
+            grunt.file.write(f.dest, buff);
+
+            // Print a success message.
+            resolve({ message: 'File "' + f.dest + '" created.', data: f.dest });
+          });
+
+          grunt.log.writeln('run command. filepath = ' + filepath);
+
         });
-
-        grunt.log.writeln('run command. filepath = ' + filepath);
 
       });
 
-    });
+    }
+
+    // Iterate over all specified file groups.
+    (function iterate(files, count) {
+      // Count done processes and check end of all.
+      if (files.length <= count) {
+        done();
+        return;
+      }
+      var promise = runCommand(files[count]);
+      promise.then(function(obj){
+        if(typeof obj.logType === 'undefined') {
+          grunt.log.writeln(obj.message);
+        } else {
+          grunt.log[obj.logType](obj.message);
+        }
+        iterate(files, ++count);
+      }, function(obj){
+        if(typeof obj.logType === 'undefined') {
+          grunt.log.warn(obj.message);
+        } else {
+          grunt.log[obj.logType](obj.message);
+        }
+        done(false);
+      });
+    })(this.files, 0);
 
   });
 
